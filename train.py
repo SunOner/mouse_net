@@ -29,12 +29,16 @@ class Data:
                 f.write(f'{target[0]} {target[1]} {target[2]} {target[3]} {target[4]} {target[5]} {target[6]} {target[7]} {target[8]} {target[9]} {target[10]} {target[11]}\n')
     
     def delete_data(self):
-        try:
-            os.remove(self.data_path)
-            os.remove('mouse_net.pth')
-        except Exception as e:
-            print(f"Error deleting data file: {e}")
-            
+        if Option_delete_prev_data:
+            try:
+                os.remove(self.data_path)
+            except Exception as e:
+                print(f"Error deleting data file: {e}")
+            try:
+                os.remove('mouse_net.pth')
+            except Exception as e:
+                print(f"Error deleting data file: {e}")
+
     def add_target_data(self, target):
         self.data_queue.put(target)
         
@@ -257,10 +261,10 @@ def gen_data():
 if __name__ == "__main__":
     Option_visualise = False
     Option_gen_max_targets = 10
-    Option_gen_min_live_time = 175
-    Option_gen_max_live_time = 500
-    Option_train_epochs = 20
-    Option_delete_prev_data = True
+    Option_gen_min_live_time = 50
+    Option_gen_max_live_time = 100
+    Option_train_epochs = 5
+    Option_delete_prev_data = False
     # Init classes
     game_settings = Game_settings()
     data = Data(Option_delete_prev_data)
