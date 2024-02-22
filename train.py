@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 class Data:
     def __init__(self, delete_prev_data=True):
@@ -135,7 +136,7 @@ class Target:
 class Visualisation(threading.Thread):
     def __init__(self, data_obj):
         super(Visualisation, self).__init__()
-        self.queue = queue.Queue(maxsize=999)
+        self.queue = queue.Queue()
         self.cv2_window_name = 'train_mouse_net'
         self.data_obj = data_obj
         self.start()
@@ -206,7 +207,9 @@ def train_net():
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     epochs = Option_train_epochs
+    loss_values = []
     for epoch in range(epochs):
+        epoch_losses = []
         for inputs, targets in dataloader:
             inputs, targets = inputs.to(device), targets.to(device)
             optimizer.zero_grad()
@@ -214,7 +217,17 @@ def train_net():
             loss = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
-        print(f'Epoch {epoch+1}/{epochs}, Loss: {loss.item()}')
+            epoch_losses.append(loss.item())
+        
+        epoch_loss = np.mean(epoch_losses)
+        loss_values.append(epoch_loss)
+        print(f'Epoch {epoch+1}/{epochs}, Loss: {epoch_loss}')
+    
+    plt.plot(loss_values)
+    plt.title('Training complete: Loss over epochs')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.show()
 
     torch.save(model.state_dict(), 'mouse_net.pth')
     
@@ -268,7 +281,7 @@ def gen_data():
             if current_time - start_time < target.live_time:
                 alive_targets.append(target)
                 target.move()
-                
+                target.randomize_position_and_size()
                 if Option_visualise:
                     vision.queue.put(target)
                 
@@ -306,9 +319,9 @@ if __name__ == "__main__":
     Option_visualise = False
     
     # Generation
-    Option_gen_max_targets = 10
-    Option_gen_min_live_time = 90
-    Option_gen_max_live_time = 180
+    Option_gen_max_targets = 3
+    Option_gen_min_live_time = 120
+    Option_gen_max_live_time = 160
     Option_gen_min_speed_x = -10
     Option_gen_max_speed_x = 10
     Option_gen_min_speed_y = -10
@@ -324,28 +337,28 @@ if __name__ == "__main__":
     
     # Game settings - random options
     Option_random_screen_resolution = True
-    Option_random_min_screen_resolution_width = 50
-    Option_random_max_screen_resolution_width = 1000
-    Option_random_min_screen_resolution_height = 50
-    Option_random_max_screen_resolution_height = 1000
+    Option_random_min_screen_resolution_width = 200
+    Option_random_max_screen_resolution_width = 700
+    Option_random_min_screen_resolution_height = 200
+    Option_random_max_screen_resolution_height = 700
     
     Option_random_fov = True
-    Option_random_min_fov_x = 20
-    Option_random_max_fov_x = 140
+    Option_random_min_fov_x = 50
+    Option_random_max_fov_x = 120
     
-    Option_random_min_fov_y = 20
-    Option_random_max_fov_y = 140
+    Option_random_min_fov_y = 50
+    Option_random_max_fov_y = 120
     
     Option_random_mouse_dpi = True
-    Option_random_min_mouse_dpi = 100
-    Option_random_max_mouse_dpi = 5000
+    Option_random_min_mouse_dpi = 1000
+    Option_random_max_mouse_dpi = 3000
     
     Option_random_mouse_sensitivity = True
-    Option_random_min_mouse_sensitivity = 0.1
-    Option_random_max_mouse_sensitivity = 5
+    Option_random_min_mouse_sensitivity = 1
+    Option_random_max_mouse_sensitivity = 4
     
     # Train
-    Option_train_epochs = 5
+    Option_train_epochs = 20
     
     # Data
     Option_delete_prev_data = True
@@ -360,7 +373,7 @@ if __name__ == "__main__":
     gen_data()
     
     train_net()
-    
+
     # Test model
     print('Starting testing model.')
     random_line = read_random_line()
