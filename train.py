@@ -59,9 +59,11 @@ class Game_settings:
         self.mouse_sensitivity = Option_mouse_sensitivity
     
     def randomize(self):
+        screen_changed = False
         if Option_random_screen_resolution:
             self.screen_width = random.randint(300, 700)
             self.screen_height = random.randint(300, 700)
+            screen_changed = True
         self.screen_x_center = int(self.screen_width / 2)
         self.screen_y_center = int(self.screen_height / 2)
         if Option_random_fov:
@@ -71,6 +73,10 @@ class Game_settings:
             self.mouse_dpi = random.randint(500, 2000)
         if Option_random_mouse_sensitivity:
             self.mouse_sensitivity = random.uniform(1, 5)
+
+        if screen_changed:
+            for target in targets:
+                target.randomize_position_and_size()
         
 class Target:
     def __init__(self, x, y, w, h, live_time, dx, dy):
@@ -101,7 +107,20 @@ class Target:
         if self.y < 0:
             self.y = 0
             self.dy = -self.dy
-    
+            
+    def randomize_position_and_size(self):
+        self.w = random.randint(1, 400)
+        self.h = random.randint(1, 400)
+        
+        max_x = max(0, game_settings.screen_width - self.w)
+        max_y = max(0, game_settings.screen_height - self.h)
+        
+        self.x = random.randint(0, max_x)
+        self.y = random.randint(0, max_y)
+        
+        self.dx = random.uniform(Option_gen_min_speed_x, Option_gen_max_speed_x)
+        self.dy = random.uniform(Option_gen_min_speed_y, Option_gen_max_speed_y)
+        
     def update_velocity(self):
         self.dx += random.uniform(-0.5, 0.5)
         self.dy += random.uniform(-0.5, 0.5)
@@ -217,6 +236,7 @@ def convert_to_float_list(line):
     return [float(number) for number in line.split()]
 
 def gen_data():
+    global targets
     targets = [
     Target(
         x=random.randint(0, game_settings.screen_width),
@@ -279,12 +299,12 @@ if __name__ == "__main__":
     ###################### Options ######################
     
     # Visual
-    Option_visualise = True
+    Option_visualise = False
     
     # Generation
-    Option_gen_max_targets = 100
-    Option_gen_min_live_time = 60
-    Option_gen_max_live_time = 120
+    Option_gen_max_targets = 10
+    Option_gen_min_live_time = 90
+    Option_gen_max_live_time = 180
     Option_gen_min_speed_x = -10
     Option_gen_max_speed_x = 10
     Option_gen_min_speed_y = -10
@@ -299,8 +319,8 @@ if __name__ == "__main__":
     Option_mouse_sensitivity = 1.2
     
     # Game settings - random options
-    Option_random_screen_resolution = False
-    Option_random_fov = False
+    Option_random_screen_resolution = True
+    Option_random_fov = True
     Option_random_mouse_dpi = True
     Option_random_mouse_sensitivity = True
     
