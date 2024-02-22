@@ -279,7 +279,7 @@ if __name__ == "__main__":
     ###################### Options ######################
     
     # Visual
-    Option_visualise = False
+    Option_visualise = True
     
     # Generation
     Option_gen_max_targets = 100
@@ -301,8 +301,8 @@ if __name__ == "__main__":
     # Game settings - random options
     Option_random_screen_resolution = False
     Option_random_fov = False
-    Option_random_mouse_dpi = False
-    Option_random_mouse_sensitivity = False
+    Option_random_mouse_dpi = True
+    Option_random_mouse_sensitivity = True
     
     # Train
     Option_train_epochs = 5

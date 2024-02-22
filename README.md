@@ -1,4 +1,12 @@
-# Mouse Movement Prediction Training and Visualization Tool
+<div align="center">
+
+### Mouse Movement Prediction Training Tool
+[![Discord server](https://badgen.net/discord/online-members/sunone)](https://discord.gg/sunone)
+  <p>
+    <a href="https://github.com/SunOner/yolov8_aimbot/releases" target="_blank">
+      <img width="75%" src="https://raw.githubusercontent.com/SunOner/mouse_net/main/media/mouse_net.gif"></a>
+  </p>
+</div>
 
 This project provides a Python script to simulate mouse movement, train a neural network on the generated data, and visualize the training process. The script uses `PyTorch` for machine learning and `OpenCV` for visualization.
 
