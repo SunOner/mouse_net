@@ -61,18 +61,22 @@ class Game_settings:
     def randomize(self):
         screen_changed = False
         if Option_random_screen_resolution:
-            self.screen_width = random.randint(300, 700)
-            self.screen_height = random.randint(300, 700)
+            self.screen_width = random.randint(Option_random_min_screen_resolution_width, Option_random_max_screen_resolution_width)
+            self.screen_height = random.randint(Option_random_min_screen_resolution_height, Option_random_max_screen_resolution_height)
             screen_changed = True
+            
         self.screen_x_center = int(self.screen_width / 2)
         self.screen_y_center = int(self.screen_height / 2)
+        
         if Option_random_fov:
-            self.fov_x = random.randint(55, 100)
-            self.fov_y = random.randint(55, 100)
+            self.fov_x = random.randint(Option_random_min_fov_x, Option_random_max_fov_x)
+            self.fov_y = random.randint(Option_random_min_fov_y, Option_random_max_fov_y)
+            
         if Option_random_mouse_dpi:
-            self.mouse_dpi = random.randint(500, 2000)
+            self.mouse_dpi = random.randint(Option_random_min_mouse_dpi, Option_random_max_mouse_dpi)
+            
         if Option_random_mouse_sensitivity:
-            self.mouse_sensitivity = random.uniform(1, 5)
+            self.mouse_sensitivity = random.uniform(Option_random_min_mouse_sensitivity, Option_random_max_mouse_sensitivity)
 
         if screen_changed:
             for target in targets:
@@ -320,9 +324,25 @@ if __name__ == "__main__":
     
     # Game settings - random options
     Option_random_screen_resolution = True
+    Option_random_min_screen_resolution_width = 50
+    Option_random_max_screen_resolution_width = 1000
+    Option_random_min_screen_resolution_height = 50
+    Option_random_max_screen_resolution_height = 1000
+    
     Option_random_fov = True
+    Option_random_min_fov_x = 20
+    Option_random_max_fov_x = 140
+    
+    Option_random_min_fov_y = 20
+    Option_random_max_fov_y = 140
+    
     Option_random_mouse_dpi = True
+    Option_random_min_mouse_dpi = 100
+    Option_random_max_mouse_dpi = 5000
+    
     Option_random_mouse_sensitivity = True
+    Option_random_min_mouse_sensitivity = 0.1
+    Option_random_max_mouse_sensitivity = 5
     
     # Train
     Option_train_epochs = 5
