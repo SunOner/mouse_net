@@ -32,12 +32,12 @@ class Data:
         if Option_delete_prev_data:
             try:
                 os.remove(self.data_path)
-            except Exception as e:
-                print(f"Error deleting data file: {e}")
+            except:
+                pass
             try:
-                os.remove('mouse_net.pth')
-            except Exception as e:
-                print(f"Error deleting data file: {e}")
+                os.remove('./mouse_net.pth')
+            except:
+                pass
 
     def add_target_data(self, target):
         self.data_queue.put(target)
@@ -49,24 +49,28 @@ class Data:
 
 class Game_settings:
     def __init__(self):
-        self.screen_width = 580
-        self.screen_height = 420
+        self.screen_width = Option_screen_width
+        self.screen_height = Option_screen_height
         self.screen_x_center = int(self.screen_width / 2)
         self.screen_y_center = int(self.screen_height / 2)
-        self.fov_x = 90
-        self.fov_y = 55
-        self.mouse_dpi = 1000
-        self.mouse_sensitivity = 1.2
+        self.fov_x = Option_fov_x
+        self.fov_y = Option_fov_y
+        self.mouse_dpi = Option_mouse_dpi
+        self.mouse_sensitivity = Option_mouse_sensitivity
     
     def randomize(self):
-        self.screen_width = random.randint(50, 920)
-        self.screen_height = random.randint(50, 920)
+        if Option_random_screen_resolution:
+            self.screen_width = random.randint(300, 700)
+            self.screen_height = random.randint(300, 700)
         self.screen_x_center = int(self.screen_width / 2)
         self.screen_y_center = int(self.screen_height / 2)
-        self.fov_x = random.randint(10, 130)
-        self.fov_y = random.randint(10, 130)
-        self.mouse_dpi = random.randint(100, 5000)
-        self.mouse_sensitivity = random.uniform(0.1, 20.0)
+        if Option_random_fov:
+            self.fov_x = random.randint(55, 100)
+            self.fov_y = random.randint(55, 100)
+        if Option_random_mouse_dpi:
+            self.mouse_dpi = random.randint(500, 2000)
+        if Option_random_mouse_sensitivity:
+            self.mouse_sensitivity = random.uniform(1, 5)
         
 class Target:
     def __init__(self, x, y, w, h, live_time, dx, dy):
@@ -81,8 +85,22 @@ class Target:
     def move(self):
         self.x += self.dx
         self.y += self.dy
-        self.x = max(0, min(self.x, game_settings.screen_width - self.w))
-        self.y = max(0, min(self.y, game_settings.screen_height - self.h))
+        
+        if self.x + self.w > game_settings.screen_width:
+            self.x = game_settings.screen_width - self.w
+            self.dx = -self.dx
+        
+        if self.x < 0:
+            self.x = 0
+            self.dx = -self.dx
+        
+        if self.y + self.h > game_settings.screen_height:
+            self.y = game_settings.screen_height - self.h
+            self.dy = -self.dy
+        
+        if self.y < 0:
+            self.y = 0
+            self.dy = -self.dy
     
     def update_velocity(self):
         self.dx += random.uniform(-0.5, 0.5)
@@ -203,29 +221,27 @@ def gen_data():
     Target(
         x=random.randint(0, game_settings.screen_width),
         y=random.randint(0, game_settings.screen_height),
-        w=random.uniform(1, 180),
-        h=random.uniform(1, 180),
+        w=random.uniform(1, 400),
+        h=random.uniform(1, 400),
         live_time=random.randint(Option_gen_min_live_time, Option_gen_max_live_time),
-        dx=random.uniform(-1, 1),
-        dy=random.uniform(-1, 1)) for _ in range(Option_gen_max_targets)]
+        dx=random.uniform(Option_gen_min_speed_x, Option_gen_max_speed_x),
+        dy=random.uniform(Option_gen_min_speed_y, Option_gen_max_speed_y)) for _ in range(Option_gen_max_targets)]
 
-    update_interval = 1
     start_time = time.time()
     last_update_time = time.time()
     
-    pbar = tqdm(total=Option_gen_max_targets, desc='Generation data')
+    pbar = tqdm(total=Option_gen_max_targets, desc='Targets')
     while data.running:
         current_time = time.time()
         alive_targets = []
 
-        if current_time - last_update_time > update_interval:
+        if current_time - last_update_time > 1:
             for target in targets:
                 target.update_velocity()
             last_update_time = current_time
 
         for target in targets:
             if current_time - start_time < target.live_time:
-                game_settings.randomize()
                 alive_targets.append(target)
                 target.move()
                 
@@ -245,6 +261,7 @@ def gen_data():
                                       target.y,
                                       move_proxy[0],
                                       move_proxy[1]))
+                game_settings.randomize()
         targets = alive_targets
         pbar.n = len(targets)
         pbar.refresh()
@@ -259,13 +276,41 @@ def gen_data():
         vision.join()
 
 if __name__ == "__main__":
+    ###################### Options ######################
+    
+    # Visual
     Option_visualise = False
-    Option_gen_max_targets = 10
-    Option_gen_min_live_time = 50
-    Option_gen_max_live_time = 100
+    
+    # Generation
+    Option_gen_max_targets = 100
+    Option_gen_min_live_time = 60
+    Option_gen_max_live_time = 120
+    Option_gen_min_speed_x = -10
+    Option_gen_max_speed_x = 10
+    Option_gen_min_speed_y = -10
+    Option_gen_max_speed_y = 10
+    
+    # Game settings
+    Option_screen_width = 580
+    Option_screen_height = 420
+    Option_fov_x = 90
+    Option_fov_y = 55
+    Option_mouse_dpi = 1000
+    Option_mouse_sensitivity = 1.2
+    
+    # Game settings - random options
+    Option_random_screen_resolution = False
+    Option_random_fov = False
+    Option_random_mouse_dpi = False
+    Option_random_mouse_sensitivity = False
+    
+    # Train
     Option_train_epochs = 5
-    Option_delete_prev_data = False
-    # Init classes
+    
+    # Data
+    Option_delete_prev_data = True
+    #####################################################
+
     game_settings = Game_settings()
     data = Data(Option_delete_prev_data)
     if Option_visualise:
