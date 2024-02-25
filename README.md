@@ -38,36 +38,36 @@ The script is designed to generate artificial mouse movement data, train a simpl
 
 The provided code is a Python script related to a machine learning project that involves training a neural network to predict mouse movements based on game data. The script includes class definitions, training and testing procedures, and a number of configurable options. Below are descriptions of the configurable options:
 
-# Data Options
+### Data Options
 - `Option_delete_prev_data`: Determines whether or not to delete previously stored data files before starting the data generation process. If set to `True`, the existing data.txt and mouse_net.pth files will be removed.
 
-# Training Options
+### Training Options
 - `Option_train`: Indicates whether to train the neural network model.
 - `Option_train_epochs`: Specifies the number of epochs to train the model for.
 - `Option_batch_size`: Sets the batch size for training the neural network.
 
-# Testing Options
+### Testing Options
 - `Option_test_model`: If set to `True`, the script will run model evaluation on a random sample from the generated data.
 
-# Data Generation Options
+### Data Generation Options
 - `Option_Generation`: Enables the generation of data when set to `True`.
 - `Option_gen_time`: Defines the duration (in seconds) for which data generation will run.
 - `Option_gen_visualise`: Controls whether to visualize the target's position on the screen as the data is collected.
 - `Option_gen_visualise_draw_line`: If `True`, a line will be drawn from the center of the screen to the target's position during visualization.
 
-# Size and Speed Options
+### Size and Speed Options
 - `Option_min_w` and `Option_max_w`: Define the minimum and maximum width of the target.
 - `Option_min_h` and `Option_max_h`: Define the minimum and maximum height of the target.
 - `Option_gen_min_speed_x` and `Option_gen_max_speed_x`: Specify the minimum and maximum horizontal velocities of the target.
 - `Option_gen_min_speed_y` and `Option_gen_max_speed_y`: Specify the minimum and maximum vertical velocities of the target.
 
-# Game Settings Options
+### Game Settings Options
 - `Option_screen_width` and `Option_screen_height`: Define the resolution of the screen.
 - `Option_fov_x` and `Option_fov_y`: Set the field of view angles in the x-axis and y-axis, respectively.
 - `Option_mouse_dpi`: The mouse's dots per inch (DPI) sensitivity setting.
 - `Option_mouse_sensitivity`: The in-game mouse sensitivity setting.
 
-# Random Game Settings Options
+### Random Game Settings Options
 - `Option_random_screen_resolution`: Enables randomization of screen resolution if set to `True`.
 - `Option_random_min_screen_resolution_width` and `Option_random_max_screen_resolution_width`: The range within which the screen width can be randomized.
 - `Option_random_min_screen_resolution_height` and `Option_random_max_screen_resolution_height`: The range within which the screen height can be randomized.
