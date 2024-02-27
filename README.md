@@ -1,6 +1,6 @@
 <div align="center">
 
-### Mouse Movement Prediction Training Tool
+# Mouse Movement Prediction Training Tool
 [![Discord server](https://badgen.net/discord/online-members/sunone)](https://discord.gg/sunone)
   <p>
     <a href="https://github.com/SunOner/yolov8_aimbot/releases" target="_blank">
