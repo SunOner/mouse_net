@@ -60,11 +60,12 @@ class Game_settings:
         self.mouse_sensitivity = Option_mouse_sensitivity
     
     def randomize(self):
-        screen_changed = False
         if Option_random_screen_resolution:
+            prev_screen_width = self.screen_width
+            prev_screen_height = self.screen_height
             self.screen_width = random.randint(Option_random_screen_resolution_width[0], Option_random_screen_resolution_width[1])
             self.screen_height = random.randint(Option_random_screen_resolution_height[0], Option_random_screen_resolution_height[1])
-            screen_changed = True
+            self.update_target_position(prev_screen_width, prev_screen_height)
             
         self.screen_x_center = int(self.screen_width / 2)
         self.screen_y_center = int(self.screen_height / 2)
@@ -78,11 +79,16 @@ class Game_settings:
             
         if Option_random_mouse_sensitivity:
             self.mouse_sensitivity = random.uniform(Option_random_mouse_sensitivity_min_max[0], Option_random_mouse_sensitivity_min_max[1])
-
-        if screen_changed:
-            target.randomize_position()
-            target.randomize_size()
-            target.randomize_velocity()
+        
+    def update_target_position(self, prev_width, prev_height):
+        scale_x = self.screen_width / prev_width
+        scale_y = self.screen_height / prev_height
+        target.x = int(target.x * scale_x)
+        target.y = int(target.y * scale_y)
+        target.w = min(target.w, self.screen_width)
+        target.h = min(target.h, self.screen_height)
+        target.prev_x = int(target.prev_x * scale_x)
+        target.prev_y = int(target.prev_y * scale_y)
         
 class Target:
     def __init__(self, x, y, w, h, dx, dy):
@@ -105,29 +111,30 @@ class Target:
         if self.x + self.w // 2 > game_settings.screen_width:
             self.x = game_settings.screen_width - self.w // 2
             self.dx = -self.dx
-        
+
         if self.x - self.w // 2 < 0:
             self.x = self.w // 2
             self.dx = -self.dx
-        
+
         if self.y + self.h // 2 > game_settings.screen_height:
             self.y = game_settings.screen_height - self.h // 2
             self.dy = -self.dy
-        
+
         if self.y - self.h // 2 < 0:
             self.y = self.h // 2
             self.dy = -self.dy
             
-    def randomize_position(self):
-        max_x = game_settings.screen_width - self.w
-        max_y = game_settings.screen_height - self.h
-        
-        self.x = random.randint(self.w // 2, max_x + self.w // 2)
-        self.y = random.randint(self.h // 2, max_y + self.h // 2)
-        
     def randomize_size(self):
-        self.w = random.randint(4, game_settings.screen_width)
-        self.h = random.randint(4, game_settings.screen_height)
+        max_width = game_settings.screen_width
+        max_height = game_settings.screen_height
+        self.w = random.randint(4, max_width)
+        self.h = random.randint(4, max_height)
+        
+    def randomize_position(self):
+        self.w = min(self.w, game_settings.screen_width)
+        self.h = min(self.h, game_settings.screen_height)
+        self.x = random.randint(self.w // 2, game_settings.screen_width - self.w // 2)
+        self.y = random.randint(self.h // 2, game_settings.screen_height - self.h // 2)
         
     def randomize_velocity(self):
         self.dx += random.uniform(Option_gen_speed_x[0], Option_gen_speed_x[1])
@@ -202,7 +209,7 @@ class Visualisation(threading.Thread):
                 break
             
             if Option_gen_visualise_draw_line:
-                x, y = target.predict_target_position(target_x=target.x, target_y=target.y, target_w=target.w, target_h=target.h)
+                x, y = target.predict_target_position(target_x=target.x, target_y=target.y, target_w=target.w, target_h=target.h, game_settings=game_settings)
                 cv2.line(image, (int(game_settings.screen_x_center), int(game_settings.screen_y_center)), (int(data.x + x), int(data.y + y)), (0, 255, 255), 2)
             
             cv2.rectangle(image, (int(data.x - data.w // 2), int(data.y - data.h // 2)), (int(data.x + data.w // 2), int(data.y + data.h // 2)), (0, 255, 0), 2)
@@ -304,26 +311,27 @@ def train_net():
 
     torch.save(model.state_dict(), 'mouse_net.pth')
 
-def test_model(input_data):
+def test_net():
+    print('Starting testing model...')
+    test_dataset = CustomDataset('data.txt')
+    test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+
     model = Mouse_net().to(device)
     model.load_state_dict(torch.load('mouse_net.pth', map_location=device))
     model.eval()
 
-    input_tensor = torch.tensor(input_data, dtype=torch.float32).to(device)
+    predictions = []
+    actuals = []
 
     with torch.no_grad():
-        prediction = model(input_tensor)
+        for inputs, targets in test_dataloader:
+            inputs = inputs.to(device)
+            prediction = model(inputs)
+            predictions.append(prediction.cpu().numpy())
+            actuals.append(targets.cpu().numpy())
 
-    return prediction.cpu().numpy()
-
-def read_random_line():
-    with open(data.data_path, 'r') as file:
-        lines = file.readlines()
-        random_line = random.choice(lines).strip()
-        return random_line
-
-def convert_to_float_list(line):
-    return [float(number) for number in line.split()]
+    mse = np.mean((np.array(predictions) - np.array(actuals))**2)
+    print(f"Mean Squared Error on Test Data: {mse}")
 
 def gen_data():
     pbar = tqdm(total=Option_gen_time, desc='Data generation')
@@ -341,17 +349,16 @@ def gen_data():
     last_update_time = time.time()
     
     while True:
+        game_settings.randomize()
         current_time = time.time()
 
         if current_time - last_update_time > 1:
             last_update_time = current_time
 
-        game_settings.randomize()
         target.move()
-        target.randomize_position()
         target.randomize_size()
+        target.randomize_position()
         target.randomize_velocity()
-        
         
         if Option_gen_visualise:
             vision.queue.put(target)
@@ -370,7 +377,6 @@ def gen_data():
                                 target.y,
                                 x,
                                 y))
-        
         pbar.n = int(last_update_time - start_time)
         pbar.refresh()
 
@@ -390,25 +396,22 @@ if __name__ == "__main__":
     Option_fov_x = 90
     Option_fov_y = 55
     Option_mouse_dpi = 1000
-    Option_mouse_sensitivity = 1
+    Option_mouse_sensitivity = 2
     
     # Data
     Option_delete_prev_data = True
     
     # Train
     Option_train = True
-    Option_train_epochs = 20
-    Option_train_batch_size = 2048 * 4
+    Option_train_epochs = 10
+    Option_train_batch_size = 2048 * 4 # I'm too lazy to type 4 digits, so I just multiply
     Option_save_every_N_epoch = 10
-    
-    # Testing model
-    Option_test_model = False
     
     # Generation settings
     Option_Generation = True
-    Option_gen_time = 240
+    Option_gen_time = 160
     
-    Option_gen_visualise = True
+    Option_gen_visualise = False
     Option_gen_visualise_draw_line = True
     
     # Speed - 1 is max
@@ -417,18 +420,21 @@ if __name__ == "__main__":
     
     # Game settings - random options
     Option_random_screen_resolution = False
-    Option_random_screen_resolution_width = [300, 500]
-    Option_random_screen_resolution_height = [300, 500]
+    Option_random_screen_resolution_width = [400, 580]
+    Option_random_screen_resolution_height = [300, 420]
     
     Option_random_fov = False
     Option_random_fov_x = [80, 90]
     Option_random_fov_y = [55, 70]
     
     Option_random_mouse_dpi = False
-    Option_random_mouse_dpi_min_max = [1000, 2000]
+    Option_random_mouse_dpi_min_max = [1000, 3000]
     
     Option_random_mouse_sensitivity = False
-    Option_random_mouse_sensitivity_min_max = [1, 2]
+    Option_random_mouse_sensitivity_min_max = [1, 3]
+    
+    # Testing model
+    Option_test_model = False
 
     #####################################################
 
@@ -452,9 +458,7 @@ if __name__ == "__main__":
         train_net()
 
     if Option_test_model:
-        random_line = read_random_line()
-        data_list = convert_to_float_list(random_line)
-        input_data = data_list[:10]
-        output = test_model(input_data)
-        # print(f'Tested model:\nCalculated: {str(adjust_mouse_movement_proxy(data_list[8], data_list[9]))}\nModel output: {output}')
+        test_net()
+        data.stop()
+    else:
         data.stop()
