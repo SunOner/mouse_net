@@ -45,6 +45,7 @@ The provided code is a Python script related to a machine learning project that 
 - `Option_train`: Indicates whether to train the neural network model.
 - `Option_train_epochs`: Specifies the number of epochs to train the model for.
 - `Option_batch_size`: Sets the batch size for training the neural network.
+- `Option_learning_rate`: Sets the learning rate for training the neural network.
 
 ### Testing Options
 - `Option_test_model`: If set to `True`, the script will run model evaluation on a random sample from the generated data.
