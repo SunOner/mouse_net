@@ -3,7 +3,7 @@
 # Mouse Movement Prediction Training Tool
 [![Discord server](https://badgen.net/discord/online-members/sunone)](https://discord.gg/sunone)
   <p>
-    <a href="https://github.com/SunOner/yolov8_aimbot/releases" target="_blank">
+    <a href="https://github.com/SunOner/sunone_aimbot/" target="_blank">
       <img width="75%" src="https://raw.githubusercontent.com/SunOner/mouse_net/main/media/mouse_net.gif"></a>
   </p>
 </div>
@@ -12,7 +12,7 @@ This project provides a Python script to simulate mouse movement, train a neural
 
 ## Description
 
-The script is designed to generate artificial mouse movement data, train a simple neural network on this data to predict mouse movements, and optionally visualize the target movement and data generation process in real-time for [ai aimbot](https://github.com/SunOner/yolov8_aimbot).
+The script is designed to generate artificial mouse movement data, train a simple neural network on this data to predict mouse movements, and optionally visualize the target movement and data generation process in real-time for [ai aimbot](https://github.com/SunOner/sunone_aimbot).
 
 ## Features
 
@@ -27,12 +27,11 @@ The script is designed to generate artificial mouse movement data, train a simpl
 ## Usage
 
 1. Install the required libraries using `pip`: `pip install numpy opencv-python torch torchvision tqdm matplotlib`
-2. Configure the script options in the __main__ section of the script.
-3. Run the script using Python to start the data generation and training process `python train.py`.
-4. If visualization is enabled (Option_visualise = True), an OpenCV window will display the target movements.
-5. The trained model will be saved as mouse_net.pth.
-6. Move mouse_net.pth to ai aimbot main folder.
-7. Go to ai aimbot config and set AI_mouse_net = True.
+2. Configure the script options in the config.py file.
+3. Run the script using Python to start the data generation and training process `python main.py`.
+4. The trained model will be saved as mouse_net.pth in main folder.
+5. Move mouse_net.pth to Sunone Aimbot main folder.
+6. Go to ai aimbot config and set AI_mouse_net = True.
 
 ## Configuration Options
 
