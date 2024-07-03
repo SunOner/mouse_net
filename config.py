@@ -1,16 +1,16 @@
 # Game settings
-Option_screen_width = 384
-Option_screen_height = 216
+Option_screen_width = 380
+Option_screen_height = 400
 Option_fov_x = 60
 Option_fov_y = 45
 Option_mouse_dpi = 1000
-Option_mouse_sensitivity = 1
+Option_mouse_sensitivity = 12
 
 # Data
-Option_delete_prev_data = True
+Option_delete_prev_data = False
 
 # Generation settings
-Option_Generation = True
+Option_Generation = False
 Option_gen_time = 180
 Option_gen_visualise = True
 Option_gen_visualise_draw_line = False
@@ -18,9 +18,9 @@ Option_gen_visualise_draw_line = False
 # Train
 Option_train = True
 Option_train_epochs = 40
-Option_train_batch_size = 8192
+Option_train_batch_size = 4096
 Option_save_every_N_epoch = 10
-Option_learning_rate = 0.0005
+Option_learning_rate = 0.005
 
 # Speed - 1 is max
 Option_gen_speed_x = [-1, 1]

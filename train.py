@@ -31,6 +31,7 @@ def train_net():
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     print(f'Starting train mouse_net model.\nUsing device: {device}.')
+    
     dataset = CustomDataset(data.data_path)
     dataloader = DataLoader(
         dataset, batch_size=Option_train_batch_size, shuffle=True, pin_memory=True)
@@ -44,6 +45,11 @@ def train_net():
 
     start_time = time.time()
     print(f'Learning rate: {Option_learning_rate}')
+    
+    if os.path.exists(os.path.join(save_path, 'mouse_net_optimizer.pth')):
+        # Load both model and optimizer state if they exist
+        model.load_state_dict(torch.load(os.path.join(save_path, 'mouse_net.pth')))
+        optimizer.load_state_dict(torch.load(os.path.join(save_path, 'mouse_net_optimizer.pth')))
 
     for epoch in range(epochs):
         epoch_losses = []
@@ -66,14 +72,18 @@ def train_net():
               'Loss: {:.5f}'.format(epoch_loss), format_time(train_time))
 
         if (epoch + 1) % Option_save_every_N_epoch == 0:
-            torch.save(model.state_dict(), os.path.join(
-                save_path, f'mouse_net_epoch_{epoch + 1}.pth'))
+            torch.save(model.state_dict(), os.path.join(save_path, f'mouse_net_epoch_{epoch + 1}.pth'))
+            torch.save(optimizer.state_dict(), os.path.join(save_path, 'mouse_net_optimizer.pth'))  # Save optimizer state
             print(f'Model saved at epoch {epoch + 1}')
-        # if (epoch == 4) or (epoch == 8):
-        #     lr = optimizer.param_groups[0]['lr']
-        #     lr = lr / 2
-        #     optimizer.param_groups[0]['lr'] = lr
-        #     print(f'Changing learning rate to {lr }')
+        
+        if epoch in [2, 8, 12, 16, 20, 24, 28, 32, 36]:
+           lr = optimizer.param_groups[0]['lr']
+           if lr > 1e-5:
+            lr = lr / 2
+            # Update optimizer learning rate
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = lr  
+            print(f"Learning rate reduced to: {lr}")
 
     plt.plot(loss_values)
     plt.title('Loss over epochs')
