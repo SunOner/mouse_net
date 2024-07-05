@@ -83,8 +83,9 @@ class Target:
         return self.x + self.w // 2, self.y + self.h // 2
 
     def adjust_mouse_movement(self, target_x, target_y, game_settings_module):
-        offset_x = target_x - game_settings_module.screen_x_center
-        offset_y = target_y - game_settings_module.screen_y_center
+        # Calculate offset from center of the target box
+        offset_x = target_x - (self.x + self.w // 2) 
+        offset_y = target_y - (self.y + self.h // 2)
 
         degrees_per_pixel_x = game_settings.fov_x / game_settings.screen_width
         degrees_per_pixel_y = game_settings.fov_y / game_settings.screen_height
