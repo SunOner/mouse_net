@@ -85,7 +85,7 @@ def train_net():
             torch.save(optimizer.state_dict(), os.path.join(save_path, 'mouse_net_optimizer.pth'))  # Save optimizer state
             print(f'Model saved at epoch {epoch + 1}')
         
-        if epoch in [10, 20, 30, 35]:
+        if epoch in [10, 15, 20, 23, 25, 27, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39]:
            lr = optimizer.param_groups[0]['lr']
            if lr > .0000001:
             lr = lr / 10
