@@ -154,48 +154,45 @@ def gen_data():
         target.randomize_velocity()
 
         if Option_gen_visualise:
-            visualisation.queue.put(target)
+           visualisation.queue.put(Target(predicted_x, predicted_y, target.w, target.h, target.dx, target.dy))
 
-        # prediction
-    if prev_time is not None:
-        delta_time = current_time - prev_time
-        if delta_time > 0:
-            velocity_x = (target.x - prev_x) / delta_time
-            velocity_y = (target.y - prev_y) / delta_time
-            predicted_x = target.x + velocity_x * delta_time
-            predicted_y = target.y + velocity_y * delta_time
-        else:
-            predicted_x = target.x
-            predicted_y = target.y
-    else:
-        predicted_x = target.x
-        predicted_y = target.y
-
-    prev_x = target.x
-    prev_y = target.y
-    prev_time = current_time
-
-    if Option_gen_visualise:
-        visualisation.queue.put(Target(predicted_x, predicted_y, target.w, target.h, target.dx, target.dy))
-
-    # Correct arguments for `adjust_mouse_movement` 
-    x, y = target.adjust_mouse_movement(
+        # Correct arguments for `adjust_mouse_movement` 
+        x, y = target.adjust_mouse_movement(
         target_x=target.get_center()[0],  # Pass center_x
         target_y=target.get_center()[1],  # Pass center_y
         game_settings_module=game_settings)
         
         data.add_target_data((Option_screen_width,
-                              Option_screen_height,
-                              Option_screen_width // 2,
-                              Option_screen_height // 2,
-                              Option_mouse_dpi,
-                              Option_mouse_sensitivity,
-                              Option_fov_x,
-                              Option_fov_y,
-                              target.x,
-                              target.y,
-                              x,
-                              y))
+                            Option_screen_height,
+                            Option_screen_width // 2,
+                            Option_screen_height // 2,
+                            Option_mouse_dpi,
+                            Option_mouse_sensitivity,
+                            Option_fov_x,
+                            Option_fov_y,
+                            target.x,
+                            target.y,
+                            x,
+                            y))
+
+        # prediction
+        if prev_time is not None:
+            delta_time = current_time - prev_time
+            if delta_time > 0:
+                velocity_x = (target.x - prev_x) / delta_time
+                velocity_y = (target.y - prev_y) / delta_time
+                predicted_x = target.x + velocity_x * delta_time
+                predicted_y = target.y + velocity_y * delta_time
+            else:
+                predicted_x = target.x
+                predicted_y = target.y
+        else:
+            predicted_x = target.x
+            predicted_y = target.y
+
+        prev_x = target.x
+        prev_y = target.y
+        prev_time = current_time
 
         pbar.n = int(last_update_time - start_time)
         pbar.refresh()
