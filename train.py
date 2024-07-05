@@ -157,31 +157,32 @@ def gen_data():
             visualisation.queue.put(target)
 
         # prediction
-        if prev_time is not None:
-            delta_time = current_time - prev_time
-            if delta_time > 0:
-                velocity_x = (target.x - prev_x) / delta_time
-                velocity_y = (target.y - prev_y) / delta_time
-                predicted_x = target.x + velocity_x * delta_time
-                predicted_y = target.y + velocity_y * delta_time
-            else:
-                predicted_x = target.x
-                predicted_y = target.y
+    if prev_time is not None:
+        delta_time = current_time - prev_time
+        if delta_time > 0:
+            velocity_x = (target.x - prev_x) / delta_time
+            velocity_y = (target.y - prev_y) / delta_time
+            predicted_x = target.x + velocity_x * delta_time
+            predicted_y = target.y + velocity_y * delta_time
         else:
             predicted_x = target.x
             predicted_y = target.y
+    else:
+        predicted_x = target.x
+        predicted_y = target.y
 
-        prev_x = target.x
-        prev_y = target.y
-        prev_time = current_time
+    prev_x = target.x
+    prev_y = target.y
+    prev_time = current_time
 
-        if Option_gen_visualise:
-            visualisation.queue.put(Target(predicted_x, predicted_y, target.w, target.h, target.dx, target.dy))
-        
-        # Calculate x and y regardless of visualization
-        x, y = target.adjust_mouse_movement(target_x=predicted_x, 
-                                            target_y=predicted_y, 
-                                            game_settings_module=game_settings) 
+    if Option_gen_visualise:
+        visualisation.queue.put(Target(predicted_x, predicted_y, target.w, target.h, target.dx, target.dy))
+
+    # Correct arguments for `adjust_mouse_movement` 
+    x, y = target.adjust_mouse_movement(
+        target_x=target.get_center()[0],  # Pass center_x
+        target_y=target.get_center()[1],  # Pass center_y
+        game_settings_module=game_settings)
         
         data.add_target_data((Option_screen_width,
                               Option_screen_height,
