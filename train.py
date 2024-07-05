@@ -154,7 +154,7 @@ def gen_data():
         target.randomize_velocity()
 
         if Option_gen_visualise:
-           visualisation.queue.put(Target(predicted_x, predicted_y, target.w, target.h, target.dx, target.dy))
+           visualisation.queue.put(Target(target.w, target.h, target.x, target.y, target.dx, target.dy))
 
         # Correct arguments for `adjust_mouse_movement` 
         x, y = target.adjust_mouse_movement(
@@ -181,8 +181,8 @@ def gen_data():
             if delta_time > 0:
                 velocity_x = (target.x - prev_x) / delta_time
                 velocity_y = (target.y - prev_y) / delta_time
-                predicted_x = target.x + velocity_x * delta_time
-                predicted_y = target.y + velocity_y * delta_time
+                predicted_x = prev_x + velocity_x * delta_time
+                predicted_y = prev_y + velocity_y * delta_time
             else:
                 predicted_x = target.x
                 predicted_y = target.y
