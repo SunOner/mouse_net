@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from config import *
+from config import Option_train_batch_size, Option_learning_rate, Option_train_epochs, Option_save_every_N_epoch, Option_gen_time, Option_screen_width, Option_screen_height, Option_gen_speed_x, Option_gen_speed_y, Option_gen_visualise, Option_mouse_dpi, Option_mouse_sensitivity, Option_fov_x, Option_fov_y
 from data.dataset import CustomDataset
 from models import Mouse_net
 from data.data import data
@@ -25,12 +25,15 @@ def format_time(seconds):
     formatted_time = f"{hours:02}:{minutes:02}:{sec:06.3f}"
     return formatted_time
 
+
+
 def train_net():
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     save_path = 'runs/'
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     print(f'Starting train mouse_net model.\nUsing device: {device}.')
+    
     dataset = CustomDataset(data.data_path)
     dataloader = DataLoader(
         dataset, batch_size=Option_train_batch_size, shuffle=True, pin_memory=True)
@@ -44,6 +47,18 @@ def train_net():
 
     start_time = time.time()
     print(f'Learning rate: {Option_learning_rate}')
+    
+       # Remove previous optimizer state
+    optimizer_path = os.path.join(save_path, 'mouse_net_optimizer.pth')
+    if os.path.exists(optimizer_path):
+        os.remove(optimizer_path)
+        print("Previous optimizer state removed.")
+
+    # Now, load the model only if it exists (optimizer state is gone)
+    model_path = os.path.join(save_path, 'mouse_net.pth')
+    if os.path.exists(model_path):
+        model.load_state_dict(torch.load(model_path))
+        print("Loaded existing model state.")
 
     for epoch in range(epochs):
         epoch_losses = []
@@ -66,14 +81,18 @@ def train_net():
               'Loss: {:.5f}'.format(epoch_loss), format_time(train_time))
 
         if (epoch + 1) % Option_save_every_N_epoch == 0:
-            torch.save(model.state_dict(), os.path.join(
-                save_path, f'mouse_net_epoch_{epoch + 1}.pth'))
+            torch.save(model.state_dict(), os.path.join(save_path, f'mouse_net_epoch_{epoch + 1}.pth'))
+            torch.save(optimizer.state_dict(), os.path.join(save_path, 'mouse_net_optimizer.pth'))  # Save optimizer state
             print(f'Model saved at epoch {epoch + 1}')
-        # if (epoch == 4) or (epoch == 8):
-        #     lr = optimizer.param_groups[0]['lr']
-        #     lr = lr / 2
-        #     optimizer.param_groups[0]['lr'] = lr
-        #     print(f'Changing learning rate to {lr }')
+        
+        if epoch in [10, 15, 20, 23, 25, 27, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39]:
+           lr = optimizer.param_groups[0]['lr']
+           if lr > .0000001:
+            lr = lr / 10
+            # Update optimizer learning rate
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = lr  
+            print(f"Learning rate reduced to: {lr}")
 
     plt.plot(loss_values)
     plt.title('Loss over epochs')
@@ -108,10 +127,9 @@ def test_net():
 
 def gen_data():
     pbar = tqdm(total=Option_gen_time, desc='Data generation')
-
     target = Target(
-        x=random.randint(0, Option_screen_width),
-        y=random.randint(0, Option_screen_height),
+        x=random.randint(0, Option_screen_width - 4),  
+        y=random.randint(0, Option_screen_height - 4), 
         w=random.randint(4, Option_screen_width),
         h=random.randint(4, Option_screen_height),
         dx=random.uniform(Option_gen_speed_x[0], Option_gen_speed_x[1]),
@@ -119,7 +137,6 @@ def gen_data():
 
     start_time = time.time()
     last_update_time = time.time()
-
     prev_time = None
     prev_x = None
     prev_y = None
@@ -160,10 +177,12 @@ def gen_data():
 
         if Option_gen_visualise:
             visualisation.queue.put(Target(predicted_x, predicted_y, target.w, target.h, target.dx, target.dy))
-
-        x, y = target.adjust_mouse_movement(
-            target_x=predicted_x, target_y=predicted_y, game_settings=game_settings)
-
+        
+        # Calculate x and y regardless of visualization
+        x, y = target.adjust_mouse_movement(target_x=predicted_x, 
+                                            target_y=predicted_y, 
+                                            game_settings_module=game_settings) 
+        
         data.add_target_data((Option_screen_width,
                               Option_screen_height,
                               Option_screen_width // 2,
@@ -176,8 +195,10 @@ def gen_data():
                               target.y,
                               x,
                               y))
+
         pbar.n = int(last_update_time - start_time)
         pbar.refresh()
+        pbar.update(1)
 
         if int(last_update_time - start_time) >= Option_gen_time:
             if Option_gen_visualise:
