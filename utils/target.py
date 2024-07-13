@@ -6,8 +6,8 @@ from utils.game_settings import game_settings
 
 class Target:
     def __init__(self, x, y, w, h, dx, dy):
-        self.w = min(w, game_settings.screen_width)
-        self.h = min(h, game_settings.screen_height)
+        w = min(w, game_settings.screen_width)
+        h = min(h, game_settings.screen_height)
 
         self.x = x
         self.y = y
@@ -20,7 +20,7 @@ class Target:
         self.x += self.dx
         self.y += self.dy
 
-        if self.x + self.w > game_settings.screen_width:
+        if self.x + self.w // 2 > game_settings.screen_width:
             self.x = game_settings.screen_width - self.w // 2
             self.dx = -self.dx
 
@@ -28,7 +28,7 @@ class Target:
             self.x = self.w // 2
             self.dx = -self.dx
 
-        if self.y + self.h > game_settings.screen_height:
+        if self.y + self.h // 2 > game_settings.screen_height:
             self.y = game_settings.screen_height - self.h // 2
             self.dy = -self.dy
 
@@ -43,15 +43,27 @@ class Target:
         self.h = random.randint(4, max_height)
 
     def randomize_position(self):
-        # clamp to prevent out of bound targets
-        max_x = max(0, game_settings.screen_width - self.w)
-        max_y = max(0, game_settings.screen_height - self.h)
-        self.x = random.randint(0, max_x)
-        self.y = random.randint(0, max_y)
+        max_x = game_settings.screen_width - self.w
+        max_y = game_settings.screen_height - self.h
+
+        min_visible_area = 0.1  # Minimum visible fraction
+
+        # Calculate range for center coordinates
+        center_x_min = self.w / 2 - self.w * (1 - min_visible_area)
+        center_x_max = game_settings.screen_width - self.w / 2 + self.w * (1 - min_visible_area)
+        center_y_min = self.h / 2 - self.h * (1 - min_visible_area)
+        center_y_max = game_settings.screen_height - self.h / 2 + self.h * (1 - min_visible_area)
+        
+        # Generate random center coordinates
+        self.x = random.randint(round(center_x_min), round(center_x_max)) - self.w // 2
+        self.y = random.randint(round(center_y_min), round(center_y_max)) - self.h // 2
+
+        # Clamp values to ensure visibility on all sides
+        self.x = max(0, min(self.x, max_x))
+        self.y = max(0, min(self.y, max_y))
+
 
     def randomize_velocity(self):
-        from config import Option_gen_speed_x, Option_gen_speed_y
-        
         self.dx += random.uniform(Option_gen_speed_x[0], Option_gen_speed_x[1])
         self.dy += random.uniform(Option_gen_speed_y[0], Option_gen_speed_y[1])
 
@@ -70,22 +82,9 @@ class Target:
     def get_direction_degrees(self):
         return math.degrees(self.get_direction())
 
-    def get_position(self):
-        return self.x, self.y
-    
-    def get_size(self):
-        return self.w, self.h
-
-    def get_target(self):
-        return self.x, self.y, self.w, self.h
-
-    def get_target_center(self):
-        return self.x + self.w // 2, self.y + self.h // 2
-
-    def adjust_mouse_movement(self, target_x, target_y, game_settings_module):
-        # Calculate offset from center of the target box
-        offset_x = target_x - (self.x + self.w // 2) 
-        offset_y = target_y - (self.y + self.h // 2)
+    def adjust_mouse_movement(self, target_x, target_y, game_settings):
+        offset_x = target_x - game_settings.screen_x_center
+        offset_y = target_y - game_settings.screen_y_center
 
         degrees_per_pixel_x = game_settings.fov_x / game_settings.screen_width
         degrees_per_pixel_y = game_settings.fov_y / game_settings.screen_height
@@ -102,4 +101,5 @@ class Target:
         return mouse_dpi_move_x, mouse_dpi_move_y
 
     def get_center(self):
+
         return self.x + self.w // 2, self.y + self.h // 2

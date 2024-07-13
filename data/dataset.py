@@ -1,3 +1,4 @@
+# dataset.py
 import torch
 from torch.utils.data import Dataset
 
@@ -14,4 +15,5 @@ class CustomDataset(Dataset):
 
     def __getitem__(self, idx):
         inputs, targets = self.data[idx]
+
         return torch.tensor(inputs, dtype=torch.float32), torch.tensor(targets, dtype=torch.float32)

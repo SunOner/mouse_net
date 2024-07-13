@@ -1,3 +1,4 @@
+# main.py
 from config import *
 from data.data import data
 from data.visualisation import visualisation
@@ -16,5 +17,5 @@ if __name__ == "__main__":
     if Option_test_model:
         test_net()
         data.stop()
-    else:
-        data.stop()
+
+data.stop()
