@@ -9,7 +9,9 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from config import Option_train_batch_size, Option_learning_rate, Option_train_epochs, Option_save_every_N_epoch, Option_gen_time, Option_screen_width, Option_screen_height, Option_gen_speed_x, Option_gen_speed_y, Option_gen_visualise, Option_mouse_dpi, Option_mouse_sensitivity, Option_fov_x, Option_fov_y
+from sklearn.metrics import r2_score 
+
+from config import *
 from data.dataset import CustomDataset
 from models import Mouse_net
 from data.data import data
@@ -25,40 +27,39 @@ def format_time(seconds):
     formatted_time = f"{hours:02}:{minutes:02}:{sec:06.3f}"
     return formatted_time
 
-
-
 def train_net():
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     save_path = 'runs/'
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
+    os.makedirs(save_path, exist_ok=True)
     print(f'Starting train mouse_net model.\nUsing device: {device}.')
-    
     dataset = CustomDataset(data.data_path)
-    dataloader = DataLoader(
-        dataset, batch_size=Option_train_batch_size, shuffle=True, pin_memory=True)
+    dataloader = DataLoader(dataset, batch_size=Option_train_batch_size, shuffle=True, pin_memory=True)
     model = Mouse_net().to(device)
 
+    # Loss functions and optimizer
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=Option_learning_rate)
 
+    # Learning rate scheduler
+    def lr_lambda(epoch):
+        if epoch < 2:
+            return 1.0  # No change for the first 2 epochs
+        else:
+            return 0.9**(epoch - 2)  # 10% decrease every 2 epochs after epoch 2
+
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
+
     epochs = Option_train_epochs
     loss_values = []
+    
+    # Early stopping setup
+    best_loss = float('inf')
+    patience = 4  # Wait for 4 epochs without improvement
+    epochs_without_improvement = 0
+    best_epoch = 0  # Track the epoch with the best loss
 
     start_time = time.time()
-    print(f'Learning rate: {Option_learning_rate}')
-    
-       # Remove previous optimizer state
-    optimizer_path = os.path.join(save_path, 'mouse_net_optimizer.pth')
-    if os.path.exists(optimizer_path):
-        os.remove(optimizer_path)
-        print("Previous optimizer state removed.")
-
-    # Now, load the model only if it exists (optimizer state is gone)
-    model_path = os.path.join(save_path, 'mouse_net.pth')
-    if os.path.exists(model_path):
-        model.load_state_dict(torch.load(model_path))
-        print("Loaded existing model state.")
+    print(f'Initial learning rate: {Option_learning_rate}')
 
     for epoch in range(epochs):
         epoch_losses = []
@@ -76,23 +77,32 @@ def train_net():
         loss_values.append(epoch_loss)
 
         train_time = last_update_time - start_time
-
         print(f'Epoch {epoch + 1}/{epochs}',
-              'Loss: {:.5f}'.format(epoch_loss), format_time(train_time))
-
-        if (epoch + 1) % Option_save_every_N_epoch == 0:
-            torch.save(model.state_dict(), os.path.join(save_path, f'mouse_net_epoch_{epoch + 1}.pth'))
-            torch.save(optimizer.state_dict(), os.path.join(save_path, 'mouse_net_optimizer.pth'))  # Save optimizer state
-            print(f'Model saved at epoch {epoch + 1}')
+              'Loss: {:.5f}'.format(epoch_loss), format_time(train_time),
+              f'Current LR: {scheduler.get_last_lr()[0]}')  # Print the current LR
         
-        if epoch in [10, 15, 20, 23, 25, 27, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39]:
-           lr = optimizer.param_groups[0]['lr']
-           if lr > .0000001:
-            lr = lr / 10
-            # Update optimizer learning rate
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = lr  
-            print(f"Learning rate reduced to: {lr}")
+        # Learning rate update
+        scheduler.step() 
+
+        # Early Stopping Check (with comparison to loss 4 epochs ago)
+        if epoch_loss < best_loss:
+            best_loss = epoch_loss
+            epochs_without_improvement = 0
+            best_epoch = epoch
+            torch.save(model.state_dict(), 'best_mouse_net.pth')  # Save the best model
+        else:
+            epochs_without_improvement += 1
+            if epochs_without_improvement >= patience and epoch >= best_epoch + patience:
+                print(f'Early stopping at epoch {epoch + 1}.')
+                break
+
+        # Model Saving
+        if (epoch + 1) % Option_save_every_N_epoch == 0:
+            torch.save(model.state_dict(), os.path.join(
+                save_path, f'mouse_net_epoch_{epoch + 1}.pth'))
+            print(f'Model saved at epoch {epoch + 1}')
+
+        
 
     plt.plot(loss_values)
     plt.title('Loss over epochs')
@@ -101,15 +111,18 @@ def train_net():
     plt.show()
 
     torch.save(model.state_dict(), 'mouse_net.pth')
+    print('Model saved.')
 
-def test_net():
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+def test_net(model_path='mouse_net.pth', test_data_path='data.txt'):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Starting testing model...')
-    test_dataset = CustomDataset('data.txt')
-    test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+
+    test_dataset = CustomDataset(test_data_path)
+    test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
     model = Mouse_net().to(device)
-    model.load_state_dict(torch.load('mouse_net.pth', map_location=device))
+    model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
 
     predictions = []
@@ -122,14 +135,48 @@ def test_net():
             predictions.append(prediction.cpu().numpy())
             actuals.append(targets.cpu().numpy())
 
-    mse = np.mean((np.array(predictions) - np.array(actuals))**2)
-    print(f"Mean Squared Error on Test Data: {mse}")
+        predictions = np.vstack(predictions)
+        actuals = np.vstack(actuals)
+
+        # Calculate Mean Squared Error (MSE)
+        mse = np.mean((predictions - actuals) ** 2)
+        # Calculate Mean Absolute Error (MAE)
+        mae = np.mean(np.abs(predictions - actuals) ** 2)
+
+        # Calculate Variance of Actuals
+        var_actuals = np.var(actuals)
+
+        # Calculate R-squared (Manual Calculation)
+        r2_score = 1 - (mse / var_actuals)
+
+        # Print Results 
+        print(f"Mean Squared Error (MSE): {mse}")
+        print(f"Mean Absolute Error (MAE): {mae}")
+        print(f"R-squared (R²): {r2_score}")
+
+        # Add a diagonal line for reference (perfect prediction)
+        for i in range(actuals.shape[1]):
+            plt.scatter(actuals[:, i], predictions[:, i], alpha=0.5)
+            plt.xlabel('Actual')
+            plt.ylabel('Predicted')
+            plt.title(f'Actual vs Predicted for Target {i + 1}')
+        plt.plot([actuals[:, i].min(), actuals[:, i].max()], [actuals[:, i].min(), actuals[:, i].max()], 'r--')
+
+
+
+        # Show the plot
+        plt.show()
+
+def gen_visualise():
+
+        plt.show()
 
 def gen_data():
     pbar = tqdm(total=Option_gen_time, desc='Data generation')
+
     target = Target(
-        x=random.randint(0, Option_screen_width - 4),  
-        y=random.randint(0, Option_screen_height - 4), 
+        x=random.randint(0, Option_screen_width),
+        y=random.randint(0, Option_screen_height),
         w=random.randint(4, Option_screen_width),
         h=random.randint(4, Option_screen_height),
         dx=random.uniform(Option_gen_speed_x[0], Option_gen_speed_x[1]),
@@ -137,6 +184,7 @@ def gen_data():
 
     start_time = time.time()
     last_update_time = time.time()
+
     prev_time = None
     prev_x = None
     prev_y = None
@@ -177,12 +225,10 @@ def gen_data():
 
         if Option_gen_visualise:
             visualisation.queue.put(Target(predicted_x, predicted_y, target.w, target.h, target.dx, target.dy))
-        
-        # Calculate x and y regardless of visualization
-        x, y = target.adjust_mouse_movement(target_x=predicted_x, 
-                                            target_y=predicted_y, 
-                                            game_settings_module=game_settings) 
-        
+
+        x, y = target.adjust_mouse_movement(
+            target_x=predicted_x, target_y=predicted_y, game_settings=game_settings)
+
         data.add_target_data((Option_screen_width,
                               Option_screen_height,
                               Option_screen_width // 2,
@@ -195,10 +241,8 @@ def gen_data():
                               target.y,
                               x,
                               y))
-
         pbar.n = int(last_update_time - start_time)
         pbar.refresh()
-        pbar.update(1)
 
         if int(last_update_time - start_time) >= Option_gen_time:
             if Option_gen_visualise:

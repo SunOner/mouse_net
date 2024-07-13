@@ -26,7 +26,7 @@ The script is designed to generate artificial mouse movement data, train a simpl
 
 ## Usage
 
-1. Install the required libraries using `pip`: `pip install numpy opencv-python torch torchvision tqdm matplotlib`
+1. Install the required libraries using `pip`: `pip install numpy opencv-python torch torchvision tqdm matplotlib scikit-learn`
 2. Configure the script options in the config.py file.
 3. Run the script using Python to start the data generation and training process `python main.py`.
 4. The trained model will be saved as mouse_net.pth in main folder.
