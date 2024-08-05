@@ -8,8 +8,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-
-from sklearn.metrics import r2_score 
+from sklearn.metrics import r2_score
 
 from config import *
 from data.dataset import CustomDataset
@@ -23,9 +22,7 @@ def format_time(seconds):
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     sec = seconds % 60
-
-    formatted_time = f"{hours:02}:{minutes:02}:{sec:06.3f}"
-    return formatted_time
+    return f"{hours:02}:{minutes:02}:{sec:06.3f}"
 
 def train_net():
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -36,27 +33,21 @@ def train_net():
     dataloader = DataLoader(dataset, batch_size=Option_train_batch_size, shuffle=True, pin_memory=True)
     model = Mouse_net().to(device)
 
-    # Loss functions and optimizer
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=Option_learning_rate)
 
-    # Learning rate scheduler
     def lr_lambda(epoch):
-        if epoch < 2:
-            return 1.0  # No change for the first 2 epochs
-        else:
-            return 0.9**(epoch - 2)  # 10% decrease every 2 epochs after epoch 2
+        return 1.0 if epoch < 2 else 0.9**(epoch - 2)
 
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
 
     epochs = Option_train_epochs
     loss_values = []
     
-    # Early stopping setup
     best_loss = float('inf')
-    patience = 4  # Wait for 4 epochs without improvement
+    patience = 4
     epochs_without_improvement = 0
-    best_epoch = 0  # Track the epoch with the best loss
+    best_epoch = 0
 
     start_time = time.time()
     print(f'Initial learning rate: {Option_learning_rate}')
@@ -77,32 +68,24 @@ def train_net():
         loss_values.append(epoch_loss)
 
         train_time = last_update_time - start_time
-        print(f'Epoch {epoch + 1}/{epochs}',
-              'Loss: {:.5f}'.format(epoch_loss), format_time(train_time),
-              f'Current LR: {scheduler.get_last_lr()[0]}')  # Print the current LR
+        print(f'Epoch {epoch + 1}/{epochs} Loss: {epoch_loss:.5f} {format_time(train_time)} Current LR: {scheduler.get_last_lr()[0]}')
         
-        # Learning rate update
         scheduler.step() 
 
-        # Early Stopping Check (with comparison to loss 4 epochs ago)
         if epoch_loss < best_loss:
             best_loss = epoch_loss
             epochs_without_improvement = 0
             best_epoch = epoch
-            torch.save(model.state_dict(), 'best_mouse_net.pth')  # Save the best model
+            torch.save(model.state_dict(), 'best_mouse_net.pth')
         else:
             epochs_without_improvement += 1
             if epochs_without_improvement >= patience and epoch >= best_epoch + patience:
                 print(f'Early stopping at epoch {epoch + 1}.')
                 break
 
-        # Model Saving
         if (epoch + 1) % Option_save_every_N_epoch == 0:
-            torch.save(model.state_dict(), os.path.join(
-                save_path, f'mouse_net_epoch_{epoch + 1}.pth'))
+            torch.save(model.state_dict(), os.path.join(save_path, f'mouse_net_epoch_{epoch + 1}.pth'))
             print(f'Model saved at epoch {epoch + 1}')
-
-        
 
     plt.plot(loss_values)
     plt.title('Loss over epochs')
@@ -112,7 +95,6 @@ def train_net():
 
     torch.save(model.state_dict(), 'mouse_net.pth')
     print('Model saved.')
-
 
 def test_net(model_path='mouse_net.pth', test_data_path='data.txt'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -125,8 +107,7 @@ def test_net(model_path='mouse_net.pth', test_data_path='data.txt'):
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
 
-    predictions = []
-    actuals = []
+    predictions, actuals = [], []
 
     with torch.no_grad():
         for inputs, targets in test_dataloader:
@@ -135,41 +116,28 @@ def test_net(model_path='mouse_net.pth', test_data_path='data.txt'):
             predictions.append(prediction.cpu().numpy())
             actuals.append(targets.cpu().numpy())
 
-        predictions = np.vstack(predictions)
-        actuals = np.vstack(actuals)
+    predictions = np.vstack(predictions)
+    actuals = np.vstack(actuals)
 
-        # Calculate Mean Squared Error (MSE)
-        mse = np.mean((predictions - actuals) ** 2)
-        # Calculate Mean Absolute Error (MAE)
-        mae = np.mean(np.abs(predictions - actuals) ** 2)
+    mse = np.mean((predictions - actuals) ** 2)
+    mae = np.mean(np.abs(predictions - actuals))
+    var_actuals = np.var(actuals)
+    r2 = 1 - (mse / var_actuals)
 
-        # Calculate Variance of Actuals
-        var_actuals = np.var(actuals)
+    print(f"Mean Squared Error (MSE): {mse}")
+    print(f"Mean Absolute Error (MAE): {mae}")
+    print(f"R-squared (R²): {r2}")
 
-        # Calculate R-squared (Manual Calculation)
-        r2_score = 1 - (mse / var_actuals)
-
-        # Print Results 
-        print(f"Mean Squared Error (MSE): {mse}")
-        print(f"Mean Absolute Error (MAE): {mae}")
-        print(f"R-squared (R²): {r2_score}")
-
-        # Add a diagonal line for reference (perfect prediction)
-        for i in range(actuals.shape[1]):
-            plt.scatter(actuals[:, i], predictions[:, i], alpha=0.5)
-            plt.xlabel('Actual')
-            plt.ylabel('Predicted')
-            plt.title(f'Actual vs Predicted for Target {i + 1}')
-        plt.plot([actuals[:, i].min(), actuals[:, i].max()], [actuals[:, i].min(), actuals[:, i].max()], 'r--')
-
-
-
-        # Show the plot
-        plt.show()
+    for i in range(actuals.shape[1]):
+        plt.scatter(actuals[:, i], predictions[:, i], alpha=0.5)
+        plt.xlabel('Actual')
+        plt.ylabel('Predicted')
+        plt.title(f'Actual vs Predicted for Target {i + 1}')
+    plt.plot([actuals[:, i].min(), actuals[:, i].max()], [actuals[:, i].min(), actuals[:, i].max()], 'r--')
+    plt.show()
 
 def gen_visualise():
-
-        plt.show()
+    plt.show()
 
 def gen_data():
     pbar = tqdm(total=Option_gen_time, desc='Data generation')
@@ -180,7 +148,8 @@ def gen_data():
         w=random.randint(4, Option_screen_width),
         h=random.randint(4, Option_screen_height),
         dx=random.uniform(Option_gen_speed_x[0], Option_gen_speed_x[1]),
-        dy=random.uniform(Option_gen_speed_y[0], Option_gen_speed_y[1]))
+        dy=random.uniform(Option_gen_speed_y[0], Option_gen_speed_y[1])
+    )
 
     start_time = time.time()
     last_update_time = time.time()
@@ -204,7 +173,6 @@ def gen_data():
         if Option_gen_visualise:
             visualisation.queue.put(target)
 
-        # prediction
         if prev_time is not None:
             delta_time = current_time - prev_time
             if delta_time > 0:
@@ -246,7 +214,22 @@ def gen_data():
 
         if int(last_update_time - start_time) >= Option_gen_time:
             if Option_gen_visualise:
-                visualisation.queue.put(None)  # call break
+                visualisation.queue.put(None)
             data.stop()
             pbar.close()
             break
+
+if __name__ == "__main__":
+    if Option_Generation:
+        gen_data()
+
+    if Option_gen_visualise:
+        visualisation.stop()
+
+    if Option_train:
+        train_net()
+
+    if Option_test_model:
+        test_net()
+
+    data.stop()
