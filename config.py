@@ -1,5 +1,4 @@
-# Game settings
-# config.py
+# GAME SETTINGS
 
 # Screen width in pixels
 Option_screen_width = 350
