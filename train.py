@@ -19,31 +19,33 @@ from utils.game_settings import game_settings
 from utils.target import Target
 
 def format_time(seconds):
+    """Format time in hours, minutes, and seconds."""
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     sec = seconds % 60
     return f"{hours:02}:{minutes:02}:{sec:06.3f}"
 
 def train_net():
+    """Train the neural network."""
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     save_path = 'runs/'
     os.makedirs(save_path, exist_ok=True)
     print(f'Starting train mouse_net model.\nUsing device: {device}.')
+    
     dataset = CustomDataset(data.data_path)
     dataloader = DataLoader(dataset, batch_size=Option_train_batch_size, shuffle=True, pin_memory=True)
+    
     model = Mouse_net().to(device)
-
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=Option_learning_rate)
 
     def lr_lambda(epoch):
-        return 1.0 if epoch < 2 else 0.9**(epoch - 2)
+        return 1.0 if epoch < 2 else 0.9 ** (epoch - 2)
 
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
-
     epochs = Option_train_epochs
     loss_values = []
-    
+
     best_loss = float('inf')
     patience = 4
     epochs_without_improvement = 0
@@ -97,6 +99,7 @@ def train_net():
     print('Model saved.')
 
 def test_net(model_path='mouse_net.pth', test_data_path='data.txt'):
+    """Test the trained neural network."""
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Starting testing model...')
 
@@ -137,9 +140,11 @@ def test_net(model_path='mouse_net.pth', test_data_path='data.txt'):
     plt.show()
 
 def gen_visualise():
+    """Generate visualization."""
     plt.show()
 
 def gen_data():
+    """Generate data for training."""
     pbar = tqdm(total=Option_gen_time, desc='Data generation')
 
     target = Target(
